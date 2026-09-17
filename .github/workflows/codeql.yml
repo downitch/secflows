@@ -38,13 +38,6 @@ jobs:
           category: "/language:${{ matrix.language }}"
           upload: false
 
-      - name: Soft-upload to GitHub Security (GHAS)
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: "../results/${{ matrix.language }}.sarif"
-
       - name: Copy SARIF to Unified Security Results Folder
         if: always()
         run: |
