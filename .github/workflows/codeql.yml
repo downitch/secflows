@@ -37,6 +37,7 @@ jobs:
         with:
           category: "/language:${{ matrix.language }}"
           upload: false
+          upload-database: false
 
       - name: Copy SARIF to Unified Security Results Folder
         if: always()
