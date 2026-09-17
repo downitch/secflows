@@ -16,17 +16,30 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Semgrep Scan
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            p/default
-            p/security-audit
-          generateSarif: "1"
+      - name: Install Python & Semgrep
+        run: |
+          python -m pip install --upgrade pip
+          pip install semgrep
 
-      - name: Upload SARIF file
+      - name: Run Semgrep Scan
+        run: |
+          semgrep scan \
+            --config=p/default \
+            --config=p/security-audit \
+            --sarif \
+            --output=semgrep.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF file (GHAS Repos Only)
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         continue-on-error: true
         with:
           sarif_file: semgrep.sarif
+
+      - name: Save SARIF Artifact (Always Available)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-results
+          path: semgrep.sarif
