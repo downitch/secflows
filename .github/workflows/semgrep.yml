@@ -23,23 +23,25 @@ jobs:
 
       - name: Run Semgrep Scan
         run: |
+          mkdir -p security-results
           semgrep scan \
             --config=p/default \
             --config=p/security-audit \
             --sarif \
-            --output=semgrep.sarif
-        continue-on-error: true
+            --output=security-results/semgrep.sarif \
+            --no-error
 
-      - name: Upload SARIF file (GHAS Repos Only)
+      - name: Soft-upload to GitHub Security (GHAS)
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         continue-on-error: true
         with:
-          sarif_file: semgrep.sarif
+          sarif_file: security-results/semgrep.sarif
 
-      - name: Save SARIF Artifact (Always Available)
+      - name: Save Unified Security Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: semgrep-results
-          path: semgrep.sarif
+          name: security-results
+          path: security-results/
+          retention-days: 7
