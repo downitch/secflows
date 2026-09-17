@@ -44,10 +44,10 @@ jobs:
           mkdir -p security-results
           cp ../results/${{ matrix.language }}.sarif security-results/codeql-${{ matrix.language }}.sarif
 
-      - name: Save Unified Security Artifacts
+      - name: Save Security Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: security-results
-          path: security-results/
+          name: codeql-${{ matrix.language }}-sarif
+          path: security-results/codeql-${{ matrix.language }}.sarif
           retention-days: 7
