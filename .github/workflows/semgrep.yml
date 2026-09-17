@@ -6,14 +6,13 @@ on:
 
 jobs:
   semgrep:
-    name: Semgrep Scan
+    name: Semgrep Analysis
     runs-on: ubuntu-latest
 
     permissions:
       security-events: write
       contents: read
 
-    # Use official Semgrep Docker container directly to ensure modern engine version
     container:
       image: semgrep/semgrep:latest
 
