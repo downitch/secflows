@@ -1,0 +1,39 @@
+name: Semgrep SAST
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+jobs:
+  semgrep:
+    name: Scan Code
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      contents: read
+
+    # Use official Semgrep Docker container directly to ensure modern engine version
+    container:
+      image: semgrep/semgrep:latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep Scan
+        run: |
+          semgrep scan \
+            --config=p/default \
+            --config=p/security-audit \
+            --sarif \
+            --output=semgrep.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
