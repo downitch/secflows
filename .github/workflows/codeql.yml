@@ -32,22 +32,29 @@ jobs:
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
 
-      - name: Analyze (No Auto Upload)
+      - name: Analyze
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
           upload: false
 
-      - name: Upload to GitHub Security (Soft-fail if no GHAS)
+      - name: Soft-upload to GitHub Security (GHAS)
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         continue-on-error: true
         with:
           sarif_file: "../results/${{ matrix.language }}.sarif"
 
-      - name: Save Results as Downloadable Artifact
+      - name: Copy SARIF to Unified Security Results Folder
+        if: always()
+        run: |
+          mkdir -p security-results
+          cp ../results/${{ matrix.language }}.sarif security-results/codeql-${{ matrix.language }}.sarif
+
+      - name: Save Unified Security Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: codeql-${{ matrix.language }}-sarif
-          path: "../results/*.sarif"
+          name: security-results
+          path: security-results/
+          retention-days: 7
