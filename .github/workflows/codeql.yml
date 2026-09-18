@@ -32,19 +32,19 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'   # match whatever settlement/pom.xml actually targets
+          java-version: '17'
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
 
-      - name: Build Java (settlement service only)
+      - name: Build Java (settlement service)
         if: matrix.language == 'java'
         working-directory: services/settlement
         run: mvn -B -q clean package -DskipTests
 
-      - name: Autobuild (non-Java, interpreted/no-build languages are no-ops)
+      - name: Autobuild (non-Java languages)
         if: matrix.language != 'java'
         uses: github/codeql-action/autobuild@v3
 
