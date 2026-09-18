@@ -8,6 +8,8 @@ jobs:
   semgrep:
     name: Semgrep Analysis
     runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.177.0
 
     permissions:
       security-events: write
@@ -17,11 +19,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Install Python & Semgrep
-        run: |
-          python -m pip install --upgrade pip
-          pip install semgrep
 
       - name: Run Semgrep Scan
         run: |
@@ -33,10 +30,9 @@ jobs:
             --output=security-results/semgrep.sarif \
             --no-error
 
-      - name: Soft-upload to GitHub Security (GHAS)
+      - name: Upload to GitHub Security (GHAS)
         uses: github/codeql-action/upload-sarif@v3
         if: always()
-        continue-on-error: true
         with:
           sarif_file: security-results/semgrep.sarif
 
