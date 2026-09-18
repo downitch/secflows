@@ -27,12 +27,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up JDK
+        if: matrix.language == 'java'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'   # match whatever settlement/pom.xml actually targets
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
 
-      - name: Autobuild
+      - name: Build Java (settlement service only)
+        if: matrix.language == 'java'
+        working-directory: services/settlement
+        run: mvn -B -q clean package -DskipTests
+
+      - name: Autobuild (non-Java, interpreted/no-build languages are no-ops)
+        if: matrix.language != 'java'
         uses: github/codeql-action/autobuild@v3
 
       - name: Analyze
