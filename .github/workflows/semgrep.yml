@@ -37,7 +37,7 @@ jobs:
             semgrep scan \
               --config=p/default \
               --config=p/security-audit \
-              --baseline-ref "$BASE_SHA" \
+              --baseline-commit "$BASE_SHA" \
               --sarif \
               --output=security-results/semgrep.sarif \
               --no-error
