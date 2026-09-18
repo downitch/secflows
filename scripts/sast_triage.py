@@ -200,46 +200,6 @@ def write_json(path, rows, counts, raw_count, sarif_files):
         )
     )
 
-
-def write_markdown(path, rows, counts, mode):
-    lines = []
-    lines.append("## SAST Triage Report\n")
-    lines.append(
-        f"**Mode:** `{mode}`  |  "
-        f"{ICONS['BLOCK']} Block: {counts['BLOCK']}  "
-        f"{ICONS['WARN']} Warn: {counts['WARN']}  "
-        f"{ICONS['ASYNC']} Async: {counts['ASYNC']}\n"
-    )
-
-    if not rows:
-        lines.append("No findings from any scanner. \U0001F389\n")
-    else:
-        lines.append("| Verdict | Location | Tool(s) | Rule | Confidence | Message |")
-        lines.append("|---|---|---|---|---|---|")
-        for r in rows:
-            loc = f"`{r['file']}:{r['line']}`" if r["line"] else f"`{r['file']}`"
-            tools = ", ".join(r["tools"])
-            if r["confirmed_by_multiple"]:
-                tools = f"**{tools}** (confirmed)"
-            msg = r["message"].replace("|", "\\|").replace("\n", " ")[:140]
-            lines.append(
-                f"| {ICONS[r['verdict']]} {r['verdict']} | {loc} | {tools} | "
-                f"`{r['rule_id']}` | {r['confidence']} | {msg} |"
-            )
-
-    lines.append("")
-    lines.append(
-        "_BLOCK findings fail the pipeline in `enforce` mode. WARN and ASYNC "
-        "never fail the build; WARN is surfaced here for review, ASYNC is "
-        "informational. A finding confirmed by more than one tool is a "
-        "stronger true-positive signal but is not auto-resolved — a human "
-        "still confirms reachability before marking it real or a false "
-        "positive._"
-    )
-
-    Path(path).write_text("\n".join(lines) + "\n")
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sarif-glob", action="append", required=True,
@@ -270,7 +230,6 @@ def main():
     rows, counts = build_rows(groups, thresholds)
 
     write_json(args.output_json, rows, counts, len(all_findings), sarif_files)
-    write_markdown(args.output_md, rows, counts, args.mode)
 
     print(
         f"Findings: {len(rows)} unique locations from {len(all_findings)} raw "
