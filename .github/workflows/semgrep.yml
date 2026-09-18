@@ -2,7 +2,11 @@ name: Semgrep SAST
 
 on:
   workflow_call:
-  workflow_dispatch:
+    inputs:
+      mode:
+        description: "'full' scans the entire checkout; 'diff' scans only what changed vs. the PR base"
+        type: string
+        default: full
 
 jobs:
   semgrep:
@@ -19,16 +23,33 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required to resolve --baseline-ref
 
       - name: Run Semgrep Scan
+        env:
+          SEMGREP_MODE: ${{ inputs.mode }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           mkdir -p security-results
-          semgrep scan \
-            --config=p/default \
-            --config=p/security-audit \
-            --sarif \
-            --output=security-results/semgrep.sarif \
-            --no-error
+          if [ "$SEMGREP_MODE" = "diff" ] && [ -n "$BASE_SHA" ]; then
+            echo "Diff-aware scan against base $BASE_SHA"
+            semgrep scan \
+              --config=p/default \
+              --config=p/security-audit \
+              --baseline-ref "$BASE_SHA" \
+              --sarif \
+              --output=security-results/semgrep.sarif \
+              --no-error
+          else
+            echo "Full scan"
+            semgrep scan \
+              --config=p/default \
+              --config=p/security-audit \
+              --sarif \
+              --output=security-results/semgrep.sarif \
+              --no-error
+          fi
 
       - name: Upload to GitHub Security (GHAS)
         uses: github/codeql-action/upload-sarif@v3
