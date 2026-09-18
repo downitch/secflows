@@ -45,5 +45,5 @@ jobs:
         if: always()
         with:
           name: semgrep-results-sarif
-          path: security-results/semgrep-results.sarif
+          path: security-results/semgrep.sarif
           retention-days: 7
