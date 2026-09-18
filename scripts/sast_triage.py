@@ -220,7 +220,10 @@ def main():
         sarif_files.extend(sorted(glob.glob(pattern, recursive=True)))
 
     if not sarif_files:
-        print(f"::warning::No SARIF files matched patterns: {args.sarif_glob}", file=sys.stderr)
+        print("::error::No SARIF files found — treating scan as failed, not clean.", file=sys.stderr)
+        if args.mode == "enforce":
+            write_json(args.output_json, [], {"BLOCK": 0, "WARN": 0, "ASYNC": 0}, 0, [])
+            sys.exit(2)
 
     all_findings = []
     for path in sarif_files:
