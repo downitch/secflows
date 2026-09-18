@@ -19,6 +19,7 @@ jobs:
           - javascript
           - python
           - go
+          - java
 
     steps:
       - name: Checkout
