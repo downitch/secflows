@@ -98,7 +98,20 @@ jobs:
       - name: Enforce gate
         if: inputs.mode == 'enforce'
         run: |
-          if [ "${{ steps.run-triage.outputs.exit_code }}" != "0" ]; then
-            echo "::error::Blocking findings detected. See the SAST Triage Report artifact or PR comment."
-            exit 1
-          fi
+          case "${{ steps.run-triage.outputs.exit_code }}" in
+            0)
+              echo "SAST triage passed — no BLOCK-tier findings."
+              ;;
+            1)
+              echo "::error::Blocking findings detected. See the SAST Triage Report artifact or PR comment."
+              exit 1
+              ;;
+            2)
+              echo "::error::SAST scan did not produce results (no SARIF found). Failing closed rather than merging unscanned code — see workflow run logs."
+              exit 1
+              ;;
+            *)
+              echo "::error::sast_triage.py exited unexpectedly (code ${{ steps.run-triage.outputs.exit_code }}). Failing closed."
+              exit 1
+              ;;
+          esac
