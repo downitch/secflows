@@ -1,0 +1,104 @@
+name: SAST Triage
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "report-only (never fails the build) or enforce (fails on BLOCK findings)"
+        type: string
+        default: report-only
+      block-min-score:
+        type: number
+        default: 7.0
+      warn-min-score:
+        type: number
+        default: 4.0
+
+jobs:
+  triage:
+    name: Consolidate SAST findings
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+
+    steps:
+      - name: Checkout triage tooling
+        uses: actions/checkout@v4
+        with:
+          repository: downitch/secflows
+          path: secflows
+          sparse-checkout: |
+            scripts
+
+      - name: Download all SARIF artifacts from this run
+        uses: actions/download-artifact@v4
+        with:
+          path: sarif-artifacts
+
+      - name: Run triage
+        id: run-triage
+        run: |
+          set +e
+          python3 secflows/scripts/sast_triage.py \
+            --sarif-glob "sarif-artifacts/**/*.sarif" \
+            --mode "${{ inputs.mode }}" \
+            --block-min-score "${{ inputs.block-min-score }}" \
+            --warn-min-score "${{ inputs.warn-min-score }}" \
+            --output-md triage-report.md \
+            --output-json triage-report.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Post or update PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('triage-report.md', 'utf8');
+            const marker = '<!-- sast-triage-report -->';
+            const fullBody = `${marker}\n${body}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: fullBody,
+              });
+            }
+
+      - name: Upload triage report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sast-triage-report
+          path: |
+            triage-report.md
+            triage-report.json
+          retention-days: 30
+
+      - name: Enforce gate
+        if: inputs.mode == 'enforce'
+        run: |
+          if [ "${{ steps.run-triage.outputs.exit_code }}" != "0" ]; then
+            echo "::error::Blocking findings detected. See the SAST Triage Report artifact or PR comment."
+            exit 1
+          fi
